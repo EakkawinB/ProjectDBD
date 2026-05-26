@@ -1,0 +1,11 @@
+# Secrets — ห้าม commit เด็ดขาด
+secrets/
+
+__pycache__/
+*.pyc
+N-AUTHORIZED-CAPITAL/
+venv/
+output/
+data/
+browser/
+checkpoint/
