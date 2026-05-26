@@ -18,6 +18,7 @@ ID_COL = "company_id"
 BASE_URL = "https://datawarehouse.dbd.go.th/"
 DEFAULT_TIMEOUT = 30000
 WATCHDOG_RESTART_EVERY = 40
+COMPANY_HARD_TIMEOUT = 60
 
 # ===== OUTPUT =====
 OUTPUT_DIR = BASE_DIR / "output"

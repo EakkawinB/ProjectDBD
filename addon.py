@@ -14,7 +14,6 @@ from config import (
     HEADLESS,
     DEFAULT_TIMEOUT,
     MAX_RETRY,
-    WATCHDOG_RESTART_EVERY,
     COMPANY_HARD_TIMEOUT,
     RUN_START_TIME,
     RUN_END_TIME,
@@ -22,7 +21,7 @@ from config import (
 
 from utils.logging_utils import log
 from utils.text_utils import looks_like_person_name
-from browser.lifecycle import restart_browser, ensure_page_alive, safe_wait
+from browser.lifecycle import ensure_page_alive, safe_wait
 from browser.popup import home_popup_required, popup_gate, close_popups
 from checkpoint.state import flush_error_buffer
 
