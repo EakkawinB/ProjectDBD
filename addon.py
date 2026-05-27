@@ -40,12 +40,12 @@ def ensure_popup_closed(page):
         try:
             if page.locator("#warningModal:visible").count() > 0:
                 close_popups(page)
-                page.wait_for_timeout(300)
+                page.wait_for_timeout(100)
                 continue
 
             if page.locator(".modal.show").count() > 0:
                 close_popups(page)
-                page.wait_for_timeout(300)
+                page.wait_for_timeout(100)
                 continue
 
             return
@@ -69,7 +69,7 @@ def wait_for_capital(page):
         val = get_field(page, "ทุนจดทะเบียน")
         if val:
             return val
-        page.wait_for_timeout(250)
+        page.wait_for_timeout(150)
     return None
 
 
@@ -126,36 +126,78 @@ buffer = []
 # =====================================================
 
 def type_search(page, cid):
+    ensure_popup_closed(page)
+    popup_gate(page, soft=True)
+    close_popups(page)
+
     input_box = page.locator(
-        "input.form-control[placeholder*='ค้นหาด้วยชื่อหรือเลขทะเบียนนิติบุคคล']"
+        "input.form-control[placeholder*='ค้นหาด้วยชื่อหรือเลขทะเบียน']"
     )
 
-    input_box.wait_for(timeout=8000)
+    # ✅ รอ element จริง + visible + enabled
+    input_box.wait_for(state="visible", timeout=1000)
 
+    # ✅ Scroll เข้า view (กันบางครั้งลอยนอก viewport)
+    input_box.first.scroll_into_view_if_needed()
+
+    # ✅ FORCE CLICK (สำคัญมาก)
     for i in range(3):
         try:
+            input_box.first.click(timeout=3000, force=True)
+            break
+        except:
+            log(f"[type_search] click retry {i+1}")
             ensure_popup_closed(page)
             popup_gate(page, soft=True)
             close_popups(page)
-
-            input_box.first.click(timeout=3000)
-            break
-        except:
-            log(f"retry click ({i+1})")
-            ensure_popup_closed(page)
-            close_popups(page)
-            page.wait_for_timeout(500)
+            page.wait_for_timeout(100)
     else:
-        raise Exception("click input failed")
+        raise Exception("cannot click input")
 
+    # ✅ บังคับ focus ด้วย evaluate (ฆ่าบัค React/Angular)
+    page.evaluate("""
+        () => {
+            const el = document.querySelector("input.form-control");
+            if (el) {
+                el.focus();
+                el.click();
+            }
+        }
+    """)
+
+    page.wait_for_timeout(100)
+
+    # ✅ ล้างค่าแบบชัวร์
     input_box.fill("")
     page.keyboard.press("Control+A")
     page.keyboard.press("Backspace")
 
-    input_box.type(cid, delay=KEY_DELAY_MS)
-    page.wait_for_timeout(150)
+    # ✅ พิมพ์ (ถ้า type fail ใช้ fill fallback)
+    try:
+        input_box.type(cid, delay=KEY_DELAY_MS)
+    except:
+        input_box.fill(cid)
 
-    input_box.press("Enter")
+    page.wait_for_timeout(100)
+
+    # ✅ ยิง Enter 2 แบบ (กัน SPA)
+    try:
+        input_box.press("Enter")
+    except:
+        page.keyboard.press("Enter")
+
+    # ✅ fallback (บางเว็บต้อง dispatch event)
+    page.evaluate("""
+        () => {
+            const el = document.querySelector("input.form-control");
+            if (el) {
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+    """)
+
+    page.wait_for_timeout(100)
 
 # =====================================================
 # SCRAPER
@@ -213,7 +255,7 @@ try:
         page.set_default_timeout(DEFAULT_TIMEOUT)
 
         page.goto(BASE_URL)
-        page = safe_wait(page, browser, 800)
+        page = safe_wait(page, 800)
 
         for idx, rec in enumerate(company_list, start=1):
 
@@ -239,9 +281,10 @@ try:
                     popup_gate(page, soft=True)
                     close_popups(page)
 
+                    log(f"[{idx}] typing {cid}")
                     type_search(page, cid)
 
-                    page.wait_for_timeout(400)
+                    page.wait_for_timeout(100)
 
                     ensure_popup_closed(page)
                     popup_gate(page, soft=True)
@@ -252,7 +295,7 @@ try:
                         if page.locator("text=ทุนจดทะเบียน").count() > 0:
                             found = True
                             break
-                        page.wait_for_timeout(250)
+                        page.wait_for_timeout(150)
 
                     if not found:
                         log(f"[{idx}] NO RESULT")
@@ -292,7 +335,7 @@ try:
                         page = ensure_page_alive(page, browser)
 
             flush_error_buffer()
-            page.wait_for_timeout(300)
+            page.wait_for_timeout(100)
 
         if buffer:
             df = pd.concat([df, pd.DataFrame(buffer)], ignore_index=True)
