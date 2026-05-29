@@ -1,5 +1,4 @@
 import os
-import re
 import traceback
 from datetime import datetime
 from datetime import timedelta
